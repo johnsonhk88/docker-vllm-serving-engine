@@ -1,0 +1,107 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vllm-omni
+  labels:
+    app: vllm
+    component: omni
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: vllm
+      component: omni
+  template:
+    metadata:
+      labels:
+        app: vllm
+        component: omni
+    spec:
+      containers:
+        - name: vllm-omni
+          image: vllm/vllm-omni:latest
+          command:
+            - "vllm"
+            - "serve"
+          args:
+            - "Qwen/Qwen-Image"
+            - "--omni"
+            - "--port"
+            - "8091"
+            - "--served-model-name"
+            - "qwen-image"
+            - "--gpu-memory-utilization"
+            - "0.8"
+          ports:
+            - name: http
+              containerPort: 8091
+          env:
+            - name: HF_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: hf-token-secret
+                  key: HF_TOKEN
+                  optional: true
+            - name: HUGGING_FACE_HUB_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: hf-token-secret
+                  key: HF_TOKEN
+                  optional: true
+            - name: HF_XET_HIGH_PERFORMANCE
+              value: "1"
+          resources:
+            limits:
+              nvidia.com/gpu: "1"
+              memory: 32Gi
+              cpu: "12"
+            requests:
+              nvidia.com/gpu: "1"
+              memory: 8Gi
+              cpu: "4"
+          readinessProbe:
+            httpGet:
+              path: /v1/models
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 15
+            failureThreshold: 60
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 60
+            periodSeconds: 20
+            failureThreshold: 5
+          volumeMounts:
+            - name: shm
+              mountPath: /dev/shm
+            - name: hf-cache
+              mountPath: /root/.cache/huggingface
+      volumes:
+        - name: shm
+          emptyDir:
+            medium: Memory
+            sizeLimit: 16Gi
+        - name: hf-cache
+          hostPath:
+            path: /home/johnsonhk88/.cache/huggingface
+            type: DirectoryOrCreate
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: vllm-omni-service
+  labels:
+    app: vllm
+    component: omni
+spec:
+  type: ClusterIP
+  selector:
+    app: vllm
+    component: omni
+  ports:
+    - name: http
+      port: 8091
+      targetPort: http
+      protocol: TCP

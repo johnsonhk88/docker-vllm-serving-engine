@@ -1,0 +1,65 @@
+# Default values for vllm.
+# Mode: "text" (standard LLMs) or "omni" (multimodal / diffusion)
+mode: "text"
+
+replicaCount: 1
+
+model: "Qwen/Qwen3-0.6B"
+servedModelName: "qwen-small"
+
+image:
+  text:
+    repository: vllm/vllm-openai
+    tag: v0.17.0
+    pullPolicy: IfNotPresent
+  omni:
+    repository: vllm/vllm-omni
+    tag: latest
+    pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 8000
+  omniPort: 8091
+  nodePort: 30080
+
+gpuMemoryUtilization: 0.8
+maxModelLen: 4096
+
+# Extra arguments passed to vLLM (e.g. ["--tensor-parallel-size", "2"])
+extraArgs: []
+
+# Hugging Face token (leave empty if not needed or using existingSecret)
+hfToken: ""
+existingSecret: ""
+
+# Compute Resources
+resources:
+  limits:
+    nvidia.com/gpu: 1
+    memory: 16Gi
+    cpu: 8
+  requests:
+    nvidia.com/gpu: 1
+    memory: 4Gi
+    cpu: 2
+
+# Shared memory volume (/dev/shm)
+shm:
+  sizeLimit: 8Gi
+
+# Cache mounting (shares host ~/.cache/huggingface to avoid re-downloading)
+cache:
+  enabled: true
+  hostPath: "/home/johnsonhk88/.cache/huggingface"
+
+# Health Probes
+probes:
+  readiness:
+    initialDelaySeconds: 20
+    periodSeconds: 10
+    failureThreshold: 45
+  liveness:
+    initialDelaySeconds: 60
+    periodSeconds: 15
+    failureThreshold: 5

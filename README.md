@@ -4,10 +4,13 @@ Scripts for running and testing vLLM and vLLM-Omni with Docker, the CLI, and Pyt
 
 ## Available Launchers
 
-| Script | Targeted Modalities | Default Docker Image | Default Port | Primary Endpoints |
-| --- | --- | --- | --- | --- |
-| `src/run-vllm-docker.sh` | Text LLMs (Qwen, Mistral, Llama, etc.) | `vllm/vllm-openai:v0.17.0` | `8000` | `/v1/chat/completions` |
-| `src/run-vllm-omni-docker.sh` | Omni-modality (Video, Audio, Image, Text, Diffusion DiT, TTS) | `vllm/vllm-omni:latest` | `8091` | `/v1/chat/completions`, `/v1/images/generations`, `/v1/audio/speech` |
+| Launcher / Interface | Deployment Target | Default Port | Primary Endpoints |
+| --- | --- | --- | --- |
+| `src/run-vllm-docker.sh` | Docker (Text LLMs) | `8000` | `/v1/chat/completions` |
+| `src/run-vllm-omni-docker.sh` | Docker (Omni, Audio, Video, Image, Diffusion) | `8091` | `/v1/chat/completions`, `/v1/images/generations`, `/v1/audio/speech` |
+| `src/run-vllm-k8s.sh` | Kubernetes / MicroK8s (Helm & Manifests) | `8000` / `8091` | Production `ClusterIP` (with port-forward) or `NodePort` |
+| `helm/vllm/` | Production Helm Chart | Configurable | Parameterized K8s Deployment & Service |
+| `k8s/` | Raw Declarative K8s Manifests | Configurable | Standalone YAML & Kustomize manifests |
 
 Both scripts:
 - Pass arbitrary vLLM parameters through to the serving engine.
@@ -278,6 +281,47 @@ img_resp = litellm.image_generation(
 )
 print("Image URL or base64 data received!")
 ```
+
+---
+
+## 4. Kubernetes Deployment (`k8s/` & `helm/vllm/`)
+
+Production-ready Kubernetes deployment supporting both raw manifests and a full Helm chart.
+
+### Prerequisite: Enable GPU (MicroK8s)
+If using MicroK8s on this machine, enable GPU support first:
+```bash
+microk8s enable gpu
+```
+
+### Quickstart via Helper Script (`src/run-vllm-k8s.sh`)
+Uses production `ClusterIP` by default:
+
+```bash
+# 1. Deploy Text LLM
+./src/run-vllm-k8s.sh --model Qwen/Qwen3-0.6B --name qwen-small
+
+# 2. Deploy Omni Multimodal model
+./src/run-vllm-k8s.sh --omni --model Qwen/Qwen-Image --name qwen-image
+
+# 3. Check status & stream pod logs
+./src/run-vllm-k8s.sh --status
+./src/run-vllm-k8s.sh --logs
+
+# 4. Port-forward ClusterIP service to local port
+./src/run-vllm-k8s.sh --port-forward
+```
+
+### Deploying via Helm
+```bash
+# Install Text LLM
+helm upgrade --install vllm ./helm/vllm --set mode=text --set model=Qwen/Qwen3-0.6B
+
+# Install Omni model
+helm upgrade --install vllm ./helm/vllm --set mode=omni --set model=Qwen/Qwen-Image
+```
+
+See [`k8s/README.md`](k8s/README.md) for detailed configuration, volume caching, and NodePort options.
 
 ---
 

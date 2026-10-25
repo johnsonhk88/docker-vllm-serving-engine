@@ -1,0 +1,20 @@
+{{- $isOmni := eq .Values.mode "omni" }}
+{{- $port := ternary .Values.service.omniPort .Values.service.port $isOmni }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "vllm.fullname" . }}
+  labels:
+    {{- include "vllm.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.service.type }}
+  selector:
+    {{- include "vllm.selectorLabels" . | nindent 4 }}
+  ports:
+    - name: http
+      port: {{ $port }}
+      targetPort: http
+      protocol: TCP
+      {{- if and (eq .Values.service.type "NodePort") .Values.service.nodePort }}
+      nodePort: {{ .Values.service.nodePort }}
+      {{- end }}

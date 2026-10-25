@@ -1,0 +1,6 @@
+apiVersion: v2
+name: vllm
+description: Production-ready Helm Chart for vLLM and vLLM-Omni Serving Engines
+type: application
+version: 0.1.0
+appVersion: "0.32.0"
