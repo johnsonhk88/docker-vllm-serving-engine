@@ -89,6 +89,7 @@ Usage:
 | --- | --- | --- |
 | `--model MODEL` | Required | Hugging Face model ID or local model path. |
 | `--name NAME` | vLLM default | API-visible name (passed to vLLM as `--served-model-name`). |
+| `--hf-token TOKEN` | `$HF_TOKEN` | Hugging Face access token for authenticated high-speed downloads (alias: `--token`). |
 | `--image IMAGE` | `vllm/vllm-openai:v0.17.0` | Docker image to run. |
 | `--port PORT` | `8000` | Host and container port mapping. |
 | `-h`, `--help` | None | Show usage help. |
@@ -191,6 +192,7 @@ Usage:
 | --- | --- | --- |
 | `--model MODEL` | Required | Hugging Face model ID or path (e.g. `Qwen/Qwen3-Omni-30B-A3B-Instruct`, `Qwen/Qwen-Image`). |
 | `--name NAME` | vLLM default | API-visible model alias (passed as `--served-model-name`). |
+| `--hf-token TOKEN` | `$HF_TOKEN` | Hugging Face access token for authenticated high-speed downloads (alias: `--token`). |
 | `--image IMAGE` | `vllm/vllm-omni:latest` | Docker image (e.g. `vllm/vllm-omni:v0.30.0` or `vllm/vllm-omni:nightly`). |
 | `--port PORT` | `8091` | Host and container port mapping. |
 | `-h`, `--help` | None | Show usage help. |
