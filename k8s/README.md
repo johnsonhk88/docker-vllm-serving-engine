@@ -139,9 +139,32 @@ kubectl delete -f k8s/vllm-text.yaml
 
 ---
 
-## 5. Testing with the Python Suite
+## 5. Automated Testing Runner (`src/test-k8s.sh`)
 
-With port-forwarding active (`./src/run-vllm-k8s.sh --port-forward`), run the test runner:
+The repository provides an automated end-to-end test runner `src/test-k8s.sh` that validates cluster GPU availability, manages deployment, polls pod readiness, handles background port-forwarding safely with trap handlers, and asserts OpenAI-compatible API responses:
+
+```bash
+# 1. Run automated test suite for Text LLM (Qwen/Qwen3-0.6B)
+./src/test-k8s.sh
+
+# 2. Test an already deployed vLLM pod/service
+./src/test-k8s.sh --skip-deploy
+
+# 3. Test Omni Multimodal model with deep Python/LiteLLM assertions
+./src/test-k8s.sh --mode omni --python
+
+# 4. Check cluster preflight readiness only
+./src/test-k8s.sh --preflight-only
+
+# 5. Run test and automatically clean up resources on completion
+./src/test-k8s.sh --cleanup
+```
+
+---
+
+## 6. Manual Testing with the Python Suite
+
+With port-forwarding active (`./src/run-vllm-k8s.sh --port-forward`), you can also run manual queries via the test runner:
 
 ```bash
 python3 src/test-vllm-omni.py --url http://localhost:8091/v1 --mode all

@@ -20,6 +20,17 @@ for env_file in ".env" "src/.env" "${SCRIPT_DIR}/.env" "${SCRIPT_DIR}/../.env"; 
     fi
 done
 
+# Auto-configure KUBECONFIG if not set and ~/.kube/config does not exist
+if [[ -z "${KUBECONFIG:-}" && ! -f "${HOME}/.kube/config" ]]; then
+    if [[ -r "/var/snap/microk8s/current/credentials/client.config" ]]; then
+        export KUBECONFIG="/var/snap/microk8s/current/credentials/client.config"
+    elif command -v microk8s >/dev/null 2>&1; then
+        mkdir -p "${HOME}/.kube" 2>/dev/null || true
+        microk8s config > "${HOME}/.kube/config" 2>/dev/null || true
+        chmod 600 "${HOME}/.kube/config" 2>/dev/null || true
+    fi
+fi
+
 # Detect kubectl and helm
 KUBECTL="${KUBECTL_BIN:-$(which kubectl 2>/dev/null || which microk8s.kubectl 2>/dev/null || echo "kubectl")}"
 HELM="${HELM_BIN:-$(which helm 2>/dev/null || which microk8s.helm3 2>/dev/null || echo "helm")}"

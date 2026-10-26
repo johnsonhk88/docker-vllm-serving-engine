@@ -9,6 +9,7 @@ Scripts for running and testing vLLM and vLLM-Omni with Docker, the CLI, and Pyt
 | `src/run-vllm-docker.sh` | Docker (Text LLMs) | `8000` | `/v1/chat/completions` |
 | `src/run-vllm-omni-docker.sh` | Docker (Omni, Audio, Video, Image, Diffusion) | `8091` | `/v1/chat/completions`, `/v1/images/generations`, `/v1/audio/speech` |
 | `src/run-vllm-k8s.sh` | Kubernetes / MicroK8s (Helm & Manifests) | `8000` / `8091` | Production `ClusterIP` (with port-forward) or `NodePort` |
+| `src/test-k8s.sh` | Kubernetes Automated Test Runner | `8000` / `8091` | Preflight, Pod Readiness, API Assertions, & Teardown |
 | `helm/vllm/` | Production Helm Chart | Configurable | Parameterized K8s Deployment & Service |
 | `k8s/` | Raw Declarative K8s Manifests | Configurable | Standalone YAML & Kustomize manifests |
 
@@ -319,6 +320,93 @@ helm upgrade --install vllm ./helm/vllm --set mode=text --set model=Qwen/Qwen3-0
 
 # Install Omni model
 helm upgrade --install vllm ./helm/vllm --set mode=omni --set model=Qwen/Qwen-Image
+```
+
+### Step-by-Step Kubernetes Testing Guide
+
+You can test your Kubernetes vLLM deployment either using the automated test runner (`src/test-k8s.sh`) or manually step-by-step.
+
+#### Option A: Automated Testing Runner (`src/test-k8s.sh`)
+
+The automated script handles preflight GPU verification, deployment, readiness polling, background port-forwarding with exit traps, and OpenAI API assertions:
+
+```bash
+# 1. Run cluster and GPU preflight checks only
+./src/test-k8s.sh --preflight-only
+
+# 2. Run automated test suite for Text LLM (Qwen/Qwen3-0.6B)
+./src/test-k8s.sh
+
+# 3. Test with deep Python/LiteLLM assertions enabled
+./src/test-k8s.sh --python
+
+# 4. Automated test suite for Omni / Multimodal model
+./src/test-k8s.sh --mode omni --python
+
+# 5. Test an existing deployment without re-deploying
+./src/test-k8s.sh --skip-deploy
+
+# 6. Run test and automatically clean up resources on completion
+./src/test-k8s.sh --cleanup
+```
+
+#### Option B: Manual Step-by-Step Testing
+
+##### Step 1: Ensure Cluster GPU Support
+If running MicroK8s, enable the GPU addon:
+```bash
+microk8s enable gpu
+```
+Verify that `nvidia.com/gpu` appears in the node's allocatable resources:
+```bash
+kubectl get node -o custom-columns=NAME:.metadata.name,GPUS:.status.allocatable."nvidia\.com/gpu"
+```
+
+##### Step 2: Deploy vLLM
+Deploy a lightweight model for verification:
+```bash
+./src/run-vllm-k8s.sh --model Qwen/Qwen3-0.6B --name qwen-small
+```
+
+##### Step 3: Monitor Pod Readiness & Logs
+```bash
+# Check pod status (wait for Running and 1/1 Ready)
+./src/run-vllm-k8s.sh --status
+
+# Stream engine loading logs
+./src/run-vllm-k8s.sh --logs
+```
+
+##### Step 4: Port-Forward Service
+Since the deployment uses `ClusterIP`, forward the service port to localhost:
+```bash
+./src/run-vllm-k8s.sh --port-forward
+```
+
+##### Step 5: Test Endpoints via curl
+In a separate terminal, execute API assertions:
+```bash
+# Check health probe
+curl http://localhost:8000/health
+
+# Check model discovery
+curl http://localhost:8000/v1/models
+
+# Send a chat completion request
+curl -X POST "http://localhost:8000/v1/chat/completions" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "qwen-small",
+    "messages": [
+      {"role": "user", "content": "What is the capital of France?"}
+    ]
+  }'
+```
+
+##### Step 6: Test with the Python Test Suite
+Run the automated Python test runner against the forwarded port:
+```bash
+python3 src/test-vllm-omni.py --url http://localhost:8000/v1 --mode all
 ```
 
 See [`k8s/README.md`](k8s/README.md) for detailed configuration, volume caching, and NodePort options.
