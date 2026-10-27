@@ -409,7 +409,7 @@ Run the automated Python test runner against the forwarded port:
 python3 src/test-vllm-omni.py --url http://localhost:8000/v1 --mode all
 ```
 
-See [`k8s/README.md`](k8s/README.md) for detailed configuration, volume caching, and NodePort options.
+See [`k8s/USAGE.md`](k8s/USAGE.md) for complete serving options, client integration examples, and network configuration. Detailed cluster manifests and Helm parameters are documented in [`k8s/README.md`](k8s/README.md).
 
 ---
 

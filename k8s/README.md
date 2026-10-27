@@ -172,7 +172,15 @@ python3 src/test-vllm-omni.py --url http://localhost:8091/v1 --mode all
 
 ---
 
-## 7. Troubleshooting & Debugging
+## 7. Serving & Usage Guide
+
+For a complete guide on how to integrate client applications, switch models, use NodePort for LAN serving, and execute curl / Python / LiteLLM requests:
+
+- **[k8s/USAGE.md](USAGE.md)**: Serving workflows, client access methods (ClusterIP, NodePort, In-Cluster), and API examples.
+
+---
+
+## 8. Troubleshooting & Debugging
 
 For detailed analysis of known deployment errors (such as the `VLLM_PORT` URI collision, Helm connectivity without KUBECONFIG, containerd caching, and TLS certificate IP mismatches), see the comprehensive guide:
 
