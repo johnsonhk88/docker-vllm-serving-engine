@@ -169,3 +169,11 @@ With port-forwarding active (`./src/run-vllm-k8s.sh --port-forward`), you can al
 ```bash
 python3 src/test-vllm-omni.py --url http://localhost:8091/v1 --mode all
 ```
+
+---
+
+## 7. Troubleshooting & Debugging
+
+For detailed analysis of known deployment errors (such as the `VLLM_PORT` URI collision, Helm connectivity without KUBECONFIG, containerd caching, and TLS certificate IP mismatches), see the comprehensive guide:
+
+- **[k8s/DEBUG_GUIDE.md](DEBUG_GUIDE.md)**: Real-world failure modes, root causes, fixes, and diagnostic cheat sheet.

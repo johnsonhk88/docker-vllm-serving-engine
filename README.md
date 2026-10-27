@@ -438,3 +438,6 @@ If port `8000` or `8091` is in use, supply `--port <new_port>`:
 ./src/run-vllm-omni-docker.sh --model Qwen/Qwen-Image --port 8095
 ```
 Remember to direct client requests to `http://localhost:8095/v1/...`.
+
+### Kubernetes Troubleshooting & Debugging Guide
+For detailed failure analysis and solutions (including the `VLLM_PORT` URI collision, Helm without KUBECONFIG, container image caching, and node certificate IP mismatches), see [`k8s/DEBUG_GUIDE.md`](k8s/DEBUG_GUIDE.md).
