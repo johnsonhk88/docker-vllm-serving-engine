@@ -330,16 +330,35 @@ while true; do
     if [[ -n "$POD_NAME" ]]; then
         POD_PHASE="$("$KUBECTL" -n "$NAMESPACE" get pod "$POD_NAME" -o jsonpath='{.status.phase}' 2>/dev/null || echo "Unknown")"
         CONTAINER_READY="$("$KUBECTL" -n "$NAMESPACE" get pod "$POD_NAME" -o jsonpath='{.status.containerStatuses[0].ready}' 2>/dev/null || echo "false")"
+        WAIT_REASON="$("$KUBECTL" -n "$NAMESPACE" get pod "$POD_NAME" -o jsonpath='{.status.containerStatuses[0].state.waiting.reason}' 2>/dev/null || echo "")"
+        RESTARTS="$("$KUBECTL" -n "$NAMESPACE" get pod "$POD_NAME" -o jsonpath='{.status.containerStatuses[0].restartCount}' 2>/dev/null || echo "0")"
 
         if [[ "$CONTAINER_READY" == "true" ]]; then
             pod_ready=true
             log_success "Pod $POD_NAME is READY! (elapsed: ${elapsed}s)"
             break
         else
-            printf "\r${BLUE}[*]${NC} Pod: %s (Phase: %s, Ready: %s) [%ds/%ds]..." "$POD_NAME" "$POD_PHASE" "$CONTAINER_READY" "$elapsed" "$TIMEOUT"
+            state_info="${POD_PHASE}"
+            if [[ -n "$WAIT_REASON" ]]; then
+                state_info="${state_info}:${WAIT_REASON}"
+            fi
+            if [[ "$RESTARTS" =~ ^[0-9]+$ && "$RESTARTS" -gt 0 ]]; then
+                state_info="${state_info} (restarts: ${RESTARTS})"
+            fi
+            printf "\r${BLUE}[*]${NC} Pod: %s (State: %s, Ready: %s) [%ds/%ds]...   " "$POD_NAME" "$state_info" "$CONTAINER_READY" "$elapsed" "$TIMEOUT"
+
+            if [[ "$WAIT_REASON" =~ (CrashLoopBackOff|ImagePullBackOff|ErrImagePull) && "$elapsed" -ge 30 ]]; then
+                echo ""
+                log_error "Container entered failed state: ${WAIT_REASON} (Pod: ${POD_NAME})"
+                log_warn "Recent pod events:"
+                "$KUBECTL" -n "$NAMESPACE" describe pod "$POD_NAME" | tail -n 25 || true
+                log_warn "Pod logs:"
+                "$KUBECTL" -n "$NAMESPACE" logs --tail=50 "$POD_NAME" 2>/dev/null || true
+                exit 1
+            fi
         fi
     else
-        printf "\r${BLUE}[*]${NC} Waiting for pod creation in namespace '%s' [%ds/%ds]..." "$NAMESPACE" "$elapsed" "$TIMEOUT"
+        printf "\r${BLUE}[*]${NC} Waiting for pod creation in namespace '%s' [%ds/%ds]...   " "$NAMESPACE" "$elapsed" "$TIMEOUT"
     fi
 
     sleep 5
@@ -386,7 +405,7 @@ fi
 # Wait for local port connectivity
 log_info "Verifying HTTP endpoint connectivity at http://localhost:${PORT}..."
 conn_ok=false
-for i in {1..15}; do
+for i in {1..10}; do
     if curl -s -f "http://localhost:${PORT}/health" >/dev/null 2>&1; then
         conn_ok=true
         log_success "Local HTTP connection confirmed on port $PORT."
@@ -394,6 +413,54 @@ for i in {1..15}; do
     fi
     sleep 2
 done
+
+if [[ "$conn_ok" == false ]]; then
+    POD_IP="$("$KUBECTL" -n "$NAMESPACE" get pod "$POD_NAME" -o jsonpath='{.status.podIP}' 2>/dev/null || echo "")"
+    if [[ -n "$POD_IP" ]] && curl -s -f "http://${POD_IP}:${PORT}/health" >/dev/null 2>&1; then
+        log_warn "kubectl port-forward experienced a cluster proxy issue, but Pod IP (${POD_IP}) is directly reachable."
+        log_info "Establishing local bridge on port ${PORT} to pod ${POD_IP}:${PORT}..."
+        if [[ -n "$PF_PID" ]] && kill -0 "$PF_PID" 2>/dev/null; then
+            kill "$PF_PID" 2>/dev/null || true
+        fi
+        if command -v socat >/dev/null 2>&1; then
+            socat "TCP-LISTEN:${PORT},fork,reuseaddr" "TCP:${POD_IP}:${PORT}" >/dev/null 2>&1 &
+            PF_PID=$!
+        else
+            python3 -c "
+import socket, threading, sys
+l = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+l.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+l.bind(('127.0.0.1', ${PORT}))
+l.listen(50)
+def pipe(src, dst):
+    try:
+        while True:
+            d = src.recv(4096)
+            if not d: break
+            dst.sendall(d)
+    except: pass
+    finally:
+        src.close()
+        dst.close()
+while True:
+    c, _ = l.accept()
+    r = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    try:
+        r.connect(('${POD_IP}', ${PORT}))
+        threading.Thread(target=pipe, args=(c, r), daemon=True).start()
+        threading.Thread(target=pipe, args=(r, c), daemon=True).start()
+    except:
+        c.close()
+" &
+            PF_PID=$!
+        fi
+        sleep 1
+        if curl -s -f "http://localhost:${PORT}/health" >/dev/null 2>&1; then
+            conn_ok=true
+            log_success "Local bridge established at http://localhost:${PORT}."
+        fi
+    fi
+fi
 
 if [[ "$conn_ok" == false ]]; then
     log_error "Failed to connect to http://localhost:${PORT}/health after port-forwarding."

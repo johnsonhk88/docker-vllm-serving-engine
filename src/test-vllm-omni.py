@@ -114,6 +114,23 @@ def run_chat_completion(
         return result["choices"][0]["message"]["content"]
 
 
+def test_text_chat(base_url: str, model: str, prompt: str, use_litellm: bool):
+    """Test text chat completion."""
+    print(f"\n--- Text Chat Completion (Model: {model}) ---")
+    print(f"Prompt: {prompt}")
+
+    messages = [
+        {"role": "user", "content": prompt}
+    ]
+    try:
+        reply = run_chat_completion(base_url, model, messages, use_litellm=use_litellm)
+        print(f"\n[+] Text Chat Response:\n{reply}\n")
+        return True
+    except Exception as e:
+        print(f"[-] Text Chat Failed: {e}", file=sys.stderr)
+        return False
+
+
 def test_vision_chat(base_url: str, model: str, prompt: str, image_url: str, use_litellm: bool):
     """Test multimodal vision chat."""
     print(f"\n--- Multimodal Vision Chat (Model: {model}) ---")
@@ -233,9 +250,9 @@ def main():
     )
     parser.add_argument(
         "--mode",
-        choices=["models", "chat", "audio", "image", "all"],
+        choices=["models", "text", "chat", "audio", "image", "all"],
         default="all",
-        help="Test mode: models, chat (vision), audio, image (diffusion), or all (default: all)",
+        help="Test mode: models, text, chat (vision), audio, image (diffusion), or all (default: all)",
     )
     parser.add_argument(
         "--prompt",
@@ -290,7 +307,11 @@ def main():
     # Determine actions based on mode
     model_lower = target_model.lower()
 
-    if args.mode == "chat":
+    if args.mode == "text":
+        prompt = args.prompt or "What is the capital of France?"
+        test_text_chat(args.url, target_model, prompt, use_litellm)
+
+    elif args.mode == "chat":
         prompt = args.prompt or "Describe the contents and colors in this image in detail:"
         test_vision_chat(args.url, target_model, prompt, args.image_url, use_litellm)
 
@@ -313,10 +334,14 @@ def main():
         elif "tts" in model_lower or "audio" in model_lower:
             prompt = args.prompt or "Transcribe what is spoken in this audio:"
             test_audio_chat(args.url, target_model, prompt, args.audio_url, use_litellm)
-        else:
+        elif "omni" in model_lower or "vision" in model_lower or "vl" in model_lower:
             # Omni or vision model (e.g. Qwen3-Omni, MiniCPM-o)
             prompt = args.prompt or "Describe the contents and scenery of this image in 20 words:"
             test_vision_chat(args.url, target_model, prompt, args.image_url, use_litellm)
+        else:
+            # Standard text model (e.g. Qwen3-0.6B, Llama, Mistral)
+            prompt = args.prompt or "What is the capital of France?"
+            test_text_chat(args.url, target_model, prompt, use_litellm)
 
 
 if __name__ == "__main__":

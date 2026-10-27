@@ -17,6 +17,7 @@ spec:
         app: vllm
         component: text-llm
     spec:
+      enableServiceLinks: false
       containers:
         - name: vllm
           image: vllm/vllm-openai:v0.17.0
@@ -33,6 +34,8 @@ spec:
             - name: http
               containerPort: 8000
           env:
+            - name: VLLM_PORT
+              value: "8000"
             - name: HF_TOKEN
               valueFrom:
                 secretKeyRef:
