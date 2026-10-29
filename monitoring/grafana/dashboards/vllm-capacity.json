@@ -62,9 +62,9 @@
       "title": "DCGM GPU framebuffer used",
       "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
-      "fieldConfig": { "defaults": { "unit": "decbytes" }, "overrides": [] },
+      "fieldConfig": { "defaults": { "unit": "bytes" }, "overrides": [] },
       "targets": [
-        { "expr": "DCGM_FI_DEV_FB_USED", "legendFormat": "{{ gpu }} fb used", "refId": "A" }
+        { "expr": "DCGM_FI_DEV_FB_USED * 1024 * 1024", "legendFormat": "{{ gpu }} fb used", "refId": "A" }
       ]
     },
     {

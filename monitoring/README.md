@@ -54,15 +54,22 @@ microk8s enable community keda  # or: helm install keda kedacore/keda --namespac
 
 Override `autoscaling.prometheus.serverAddress` to the in-cluster Prometheus
 (for example `http://kube-prometheus-stack-prometheus.monitoring.svc:9090` or
-the observability-namespace service on MicroK8s). Set
-`monitoring.serviceMonitor.labels` so they match the operator's ServiceMonitor
-selector.
+the observability-namespace service on MicroK8s). kube-prometheus-stack only
+scrapes ServiceMonitors whose labels match `release: <helm release>` — set
+`monitoring.serviceMonitor.labels` or Prometheus never sees vLLM. An empty query
+(wrong metric name, or nothing scraped) is treated as 0, so KEDA stays at
+`minReplicas` with no error and **will not scale**.
+
+With default `minReplicas: 1`, `cooldownPeriod` is mapped to the HPA scale-down
+stabilization window (KEDA's own cooldown only applies when scaling to zero).
+`pollingInterval` still feeds the Prometheus trigger.
 
 ### Scrape vLLM `/metrics`
 
 ```bash
 helm upgrade --install vllm ./helm/vllm \
-  --set monitoring.enabled=true
+  --set monitoring.enabled=true \
+  --set monitoring.serviceMonitor.labels.release=kube-prometheus-stack
 ```
 
 ### Autoscale copies from the waiting-request queue
@@ -70,14 +77,16 @@ helm upgrade --install vllm ./helm/vllm \
 ```bash
 helm upgrade --install vllm ./helm/vllm \
   --set monitoring.enabled=true \
+  --set monitoring.serviceMonitor.labels.release=kube-prometheus-stack \
   --set autoscaling.enabled=true \
   --set autoscaling.prometheus.serverAddress=http://kube-prometheus-stack-prometheus.monitoring.svc:9090
 ```
 
 KEDA uses `sum(vllm:num_requests_waiting)` with threshold `5` (override
-`autoscaling.prometheus.query` / `threshold`). When `autoscaling.enabled` is
-true, KEDA owns replica count — do not also set `replicaCount` as a second
-controller.
+`autoscaling.prometheus.query` / `threshold`). Desired replicas is about
+`ceil(sum / threshold)` (KEDA default `AverageValue`). When
+`autoscaling.enabled` is true, KEDA owns replica count — do not also set
+`replicaCount` as a second controller.
 
 If the running image emits underscored metric names instead of `vllm:…`,
 change `autoscaling.prometheus.query` and the Grafana PromQL. Do not add a

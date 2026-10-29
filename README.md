@@ -434,6 +434,7 @@ Opt-in Helm flags (off by default so clusters without the CRDs keep working):
 ```bash
 helm upgrade --install vllm ./helm/vllm \
   --set monitoring.enabled=true \
+  --set monitoring.serviceMonitor.labels.release=kube-prometheus-stack \
   --set autoscaling.enabled=true \
   --set autoscaling.prometheus.serverAddress=http://kube-prometheus-stack-prometheus.monitoring.svc:9090
 ```

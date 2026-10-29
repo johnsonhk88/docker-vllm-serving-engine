@@ -24,4 +24,8 @@ grep -q 'tensorParallelSize' k8s/README.md \
   || fail "tensorParallelSize missing from k8s/README.md"
 grep -q 'maxNumSeqs' k8s/README.md \
   || fail "maxNumSeqs missing from k8s/README.md"
+grep -q 'serviceMonitor.labels' monitoring/README.md \
+  || fail "monitoring/README.md must show serviceMonitor.labels in Helm examples"
+grep -q 'empty query' monitoring/README.md \
+  || fail "monitoring/README.md must warn that an empty PromQL result will not scale"
 pass "operator documentation contains required monitoring contracts"

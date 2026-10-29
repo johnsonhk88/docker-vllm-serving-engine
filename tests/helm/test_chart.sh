@@ -59,4 +59,5 @@ printf '%s\n' "${scaled}" | grep -q 'sum(vllm:num_requests_waiting)' || fail "Sc
 printf '%s\n' "${scaled}" | grep -Eq 'threshold: ["'\'']?5["'\'']?' || fail "ScaledObject missing threshold 5"
 scaled_deploy="$(render_deploy --set autoscaling.enabled=true)"
 printf '%s\n' "${scaled_deploy}" | grep -Eq '^  replicas:' && fail "autoscaling.enabled=true deployment must not set replicas"
+printf '%s\n' "${scaled}" | grep -q 'stabilizationWindowSeconds: 60' || fail "ScaledObject must map cooldownPeriod to HPA scaleDown stabilizationWindowSeconds"
 pass "autoscaling.enabled=true renders ScaledObject and omits deployment replicas"

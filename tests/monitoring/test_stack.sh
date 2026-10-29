@@ -39,6 +39,8 @@ grep -q 'vllm:avg_generation_throughput_toks_per_s' "${DASH}" || fail "dashboard
 grep -q 'vllm:gpu_cache_usage_perc' "${DASH}" || fail "dashboard missing gpu_cache_usage_perc"
 grep -q 'DCGM_FI_DEV_GPU_UTIL' "${DASH}" || fail "dashboard missing DCGM_FI_DEV_GPU_UTIL"
 grep -q 'DCGM_FI_DEV_FB_USED' "${DASH}" || fail "dashboard missing DCGM_FI_DEV_FB_USED"
+grep -Fq 'DCGM_FI_DEV_FB_USED * 1024 * 1024' "${DASH}" || fail "FB_USED is megabytes; convert to bytes before unit bytes"
+grep -q 'decbytes' "${DASH}" && fail "do not use decbytes for DCGM_FI_DEV_FB_USED (values are already MB)"
 grep -q 'type: prometheus' "${DS}" || fail "datasource missing type: prometheus"
 grep -q 'http://prometheus:9090' "${DS}" || fail "datasource missing http://prometheus:9090"
 pass "grafana dashboard and datasource"

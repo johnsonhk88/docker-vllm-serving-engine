@@ -137,7 +137,9 @@ helm upgrade --install vllm ./helm/vllm \
 Scrape metrics (requires Prometheus Operator on the cluster — not vendored):
 
 ```bash
-helm upgrade --install vllm ./helm/vllm --set monitoring.enabled=true
+helm upgrade --install vllm ./helm/vllm \
+  --set monitoring.enabled=true \
+  --set monitoring.serviceMonitor.labels.release=kube-prometheus-stack
 ```
 
 Autoscale **copies** with KEDA (cluster addon, not a subchart). KEDA owns
@@ -146,6 +148,7 @@ Autoscale **copies** with KEDA (cluster addon, not a subchart). KEDA owns
 ```bash
 helm upgrade --install vllm ./helm/vllm \
   --set monitoring.enabled=true \
+  --set monitoring.serviceMonitor.labels.release=kube-prometheus-stack \
   --set autoscaling.enabled=true \
   --set autoscaling.prometheus.serverAddress=http://kube-prometheus-stack-prometheus.monitoring.svc:9090
 ```
