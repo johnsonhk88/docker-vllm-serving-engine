@@ -424,8 +424,18 @@ Capacity study uses Prometheus + Grafana + DCGM. Replica autoscaling on Kubernet
 docker compose -f monitoring/docker-compose.yml up -d
 ```
 
-Grafana is at http://localhost:3000 (`admin` / `admin`). Prometheus scrapes
-host ports `8000` and `8091` (`/metrics`) plus DCGM and node-exporter.
+Grafana is at http://localhost:3000 (`admin` / `admin`). Open dashboard
+**vLLM Capacity** (`/d/vllm-capacity`). Prometheus scrapes host ports `8000`
+and `8091` (`/metrics`) plus DCGM and node-exporter.
+
+You will see:
+
+- **Token throughput** — prompt and generation tokens/s
+- **Queue** — requests running vs waiting
+- **GPU** — KV-cache %, DCGM utilization, framebuffer (VRAM)
+- **CPU / RAM** — node-exporter host CPU and available memory
+
+How to read those panels and which Helm knobs to change: [`monitoring/README.md`](monitoring/README.md).
 
 ### Kubernetes
 

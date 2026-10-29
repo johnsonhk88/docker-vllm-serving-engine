@@ -29,8 +29,31 @@ docker compose -f monitoring/docker-compose.yml up -d
 | DCGM exporter | http://localhost:9400/metrics |
 | node-exporter | http://localhost:9100/metrics |
 
-Dashboard **vLLM Capacity** is provisioned automatically. Prometheus scrapes
-`host.docker.internal:8000` and `:8091` at `/metrics`.
+Dashboard **vLLM Capacity** is provisioned automatically (left sidebar, or
+http://localhost:3000/d/vllm-capacity). Prometheus scrapes
+`host.docker.internal:8000` and `:8091` at `/metrics`. If you only launched
+text **or** omni vLLM, the unused port shows as down in Prometheus — that is
+expected.
+
+### What the dashboard shows
+
+| Panel | Metric | How to use it |
+| --- | --- | --- |
+| Requests running / waiting | `vllm:num_requests_running`, `vllm:num_requests_waiting` | Queue growing → add **copies** (KEDA) or raise `--max-num-seqs` if GPU cache is still low. |
+| Token throughput | `vllm:avg_prompt_throughput_toks_per_s`, `vllm:avg_generation_throughput_toks_per_s` | Prompt vs generation tokens/s — the capacity number for “do we need more GPUs?”. |
+| GPU KV-cache usage | `vllm:gpu_cache_usage_perc` | High cache and rising wait → lower `maxNumSeqs` on each copy before buying hardware. |
+| DCGM GPU utilization | `DCGM_FI_DEV_GPU_UTIL` | GPU busy pattern over time. |
+| DCGM GPU framebuffer used | `DCGM_FI_DEV_FB_USED` | VRAM in use. Near full at load → more GPU, tensor parallel, or a smaller model. |
+| Node CPU | `node_cpu_seconds_total` | Host CPU busy. |
+| Node memory available | `node_memory_MemAvailable_bytes` | Host RAM left. |
+
+Raw serving metrics without Grafana:
+
+```bash
+curl -s http://localhost:8000/metrics | grep -E 'vllm:(num_requests_|avg_|gpu_cache)'
+```
+
+(Use port `8091` for Omni.)
 
 Stop:
 

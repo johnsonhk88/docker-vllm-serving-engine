@@ -154,7 +154,12 @@ helm upgrade --install vllm ./helm/vllm \
 ```
 
 Default PromQL is `sum(vllm:num_requests_waiting)` with threshold `5`. Tensor
-parallel size is not HPA'd. Operator guide: [`monitoring/README.md`](../monitoring/README.md).
+parallel size is not HPA'd.
+
+Import [`monitoring/grafana/dashboards/vllm-capacity.json`](../monitoring/grafana/dashboards/vllm-capacity.json)
+into cluster Grafana for GPU/CPU/RAM, KV-cache, waiting-request queue, and
+token throughput (prompt and generation toks/s). Panel-by-panel usage:
+[`monitoring/README.md`](../monitoring/README.md).
 
 ---
 
