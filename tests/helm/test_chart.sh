@@ -46,3 +46,17 @@ printf '%s\n' "${monitored}" | grep -q 'path: /metrics' || fail "ServiceMonitor 
 printf '%s\n' "${monitored}" | grep -q 'port: http' || fail "ServiceMonitor missing port: http"
 printf '%s\n' "${monitored}" | grep -q 'interval: 15s' || fail "ServiceMonitor missing interval: 15s"
 pass "monitoring.enabled=true renders ServiceMonitor on /metrics"
+
+printf '%s\n' "${default_all}" | grep -q 'kind: ScaledObject' && fail "default render must not include ScaledObject"
+printf '%s\n' "${default_deploy}" | grep -Eq '^  replicas:' || fail "default deployment must set replicas"
+pass "default omits ScaledObject and keeps replicas"
+
+scaled="$(render --set autoscaling.enabled=true)"
+printf '%s\n' "${scaled}" | grep -q 'kind: ScaledObject' || fail "autoscaling.enabled=true missing kind: ScaledObject"
+printf '%s\n' "${scaled}" | grep -q 'minReplicaCount: 1' || fail "ScaledObject missing minReplicaCount: 1"
+printf '%s\n' "${scaled}" | grep -q 'maxReplicaCount: 4' || fail "ScaledObject missing maxReplicaCount: 4"
+printf '%s\n' "${scaled}" | grep -q 'sum(vllm:num_requests_waiting)' || fail "ScaledObject missing sum(vllm:num_requests_waiting)"
+printf '%s\n' "${scaled}" | grep -Eq 'threshold: ["'\'']?5["'\'']?' || fail "ScaledObject missing threshold 5"
+scaled_deploy="$(render_deploy --set autoscaling.enabled=true)"
+printf '%s\n' "${scaled_deploy}" | grep -Eq '^  replicas:' && fail "autoscaling.enabled=true deployment must not set replicas"
+pass "autoscaling.enabled=true renders ScaledObject and omits deployment replicas"

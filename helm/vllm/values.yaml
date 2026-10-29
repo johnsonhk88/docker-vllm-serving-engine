@@ -57,6 +57,19 @@ cache:
   enabled: true
   hostPath: "/home/johnsonhk88/.cache/huggingface"
 
+# KEDA replica autoscaling (requires cluster KEDA; default off).
+# When enabled, KEDA owns replica count — Deployment omits spec.replicas.
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 4
+  pollingInterval: 15
+  cooldownPeriod: 60
+  prometheus:
+    serverAddress: http://kube-prometheus-stack-prometheus.monitoring.svc:9090
+    query: sum(vllm:num_requests_waiting)
+    threshold: "5"
+
 # Prometheus Operator ServiceMonitor (requires cluster CRD; default off)
 monitoring:
   enabled: false
