@@ -12,6 +12,7 @@ Scripts for running and testing vLLM and vLLM-Omni with Docker, the CLI, and Pyt
 | `src/test-k8s.sh` | Kubernetes Automated Test Runner | `8000` / `8091` | Preflight, Pod Readiness, API Assertions, & Teardown |
 | `helm/vllm/` | Production Helm Chart | Configurable | Parameterized K8s Deployment & Service |
 | `k8s/` | Raw Declarative K8s Manifests | Configurable | Standalone YAML & Kustomize manifests |
+| `monitoring/` | Docker Compose Prometheus/Grafana/DCGM | `9090` / `3000` | vLLM `/metrics`, GPU, CPU, RAM |
 
 Both scripts:
 - Pass arbitrary vLLM parameters through to the serving engine.
@@ -410,6 +411,36 @@ python3 src/test-vllm-omni.py --url http://localhost:8000/v1 --mode all
 ```
 
 See [`k8s/USAGE.md`](k8s/USAGE.md) for complete serving options, client integration examples, and network configuration. Detailed cluster manifests and Helm parameters are documented in [`k8s/README.md`](k8s/README.md).
+
+---
+
+## 5. GPU / CPU / Memory Monitoring
+
+Capacity study uses Prometheus + Grafana + DCGM. Replica autoscaling on Kubernetes uses KEDA. Full operator guide: [`monitoring/README.md`](monitoring/README.md).
+
+### Docker (next to a running vLLM container)
+
+```bash
+docker compose -f monitoring/docker-compose.yml up -d
+```
+
+Grafana is at http://localhost:3000 (`admin` / `admin`). Prometheus scrapes
+host ports `8000` and `8091` (`/metrics`) plus DCGM and node-exporter.
+
+### Kubernetes
+
+Opt-in Helm flags (off by default so clusters without the CRDs keep working):
+
+```bash
+helm upgrade --install vllm ./helm/vllm \
+  --set monitoring.enabled=true \
+  --set autoscaling.enabled=true \
+  --set autoscaling.prometheus.serverAddress=http://kube-prometheus-stack-prometheus.monitoring.svc:9090
+```
+
+KEDA scales copies from `vllm:num_requests_waiting`. `tensorParallelSize` and
+`maxNumSeqs` are deploy-time knobs, not autoscaled. See [`k8s/README.md`](k8s/README.md)
+and [`monitoring/README.md`](monitoring/README.md).
 
 ---
 

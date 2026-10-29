@@ -9,6 +9,8 @@ This directory provides production-ready Kubernetes manifests and a Helm Chart t
 - **Cache Persistence**: Mounts the host cache (`~/.cache/huggingface`) via `hostPath` so models already downloaded are instantly reused.
 - **Probes**: Configured with Readiness (`/v1/models`) and Liveness (`/health`) probes so Kubernetes only routes traffic once model weights are fully loaded into VRAM.
 - **Automated GPU Scheduling**: Requests `nvidia.com/gpu: 1`.
+- **Optional Prometheus ServiceMonitor**: `--set monitoring.enabled=true` scrapes vLLM `/metrics`.
+- **Optional KEDA replica autoscaling**: `--set autoscaling.enabled=true` scales copies from `vllm:num_requests_waiting`.
 
 ---
 
@@ -114,6 +116,42 @@ Then access directly via `http://<node-ip>:30080/v1/models`.
 ```bash
 helm uninstall vllm
 ```
+
+### Monitoring, concurrency, and replica scaling
+
+Deploy-time knobs (restart the pod; **not** autoscaled):
+
+| Value | vLLM flag | Purpose |
+| --- | --- | --- |
+| `maxNumSeqs` | `--max-num-seqs` | Max concurrent sequences **per copy**. Lower this if KV-cache or latency blows up before the queue grows. |
+| `tensorParallelSize` | `--tensor-parallel-size` | Split **one** model across GPUs. Match `resources.limits.nvidia.com/gpu` yourself; the chart does not auto-wire GPU count. |
+
+```bash
+helm upgrade --install vllm ./helm/vllm \
+  --set maxNumSeqs=32 \
+  --set tensorParallelSize=2 \
+  --set resources.limits."nvidia\.com/gpu"=2 \
+  --set resources.requests."nvidia\.com/gpu"=2
+```
+
+Scrape metrics (requires Prometheus Operator on the cluster — not vendored):
+
+```bash
+helm upgrade --install vllm ./helm/vllm --set monitoring.enabled=true
+```
+
+Autoscale **copies** with KEDA (cluster addon, not a subchart). KEDA owns
+`spec.replicas` when this is on:
+
+```bash
+helm upgrade --install vllm ./helm/vllm \
+  --set monitoring.enabled=true \
+  --set autoscaling.enabled=true \
+  --set autoscaling.prometheus.serverAddress=http://kube-prometheus-stack-prometheus.monitoring.svc:9090
+```
+
+Default PromQL is `sum(vllm:num_requests_waiting)` with threshold `5`. Tensor
+parallel size is not HPA'd. Operator guide: [`monitoring/README.md`](../monitoring/README.md).
 
 ---
 
