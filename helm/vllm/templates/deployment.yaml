@@ -39,6 +39,14 @@ spec:
             - "--gpu-memory-utilization"
             - {{ .Values.gpuMemoryUtilization | quote }}
             {{- end }}
+            {{- if not (or (empty .Values.maxNumSeqs) (eq (toString .Values.maxNumSeqs) "null")) }}
+            - "--max-num-seqs"
+            - {{ .Values.maxNumSeqs | quote }}
+            {{- end }}
+            {{- if not (or (empty .Values.tensorParallelSize) (eq (toString .Values.tensorParallelSize) "null")) }}
+            - "--tensor-parallel-size"
+            - {{ .Values.tensorParallelSize | quote }}
+            {{- end }}
             {{- with .Values.extraArgs }}
             {{- toYaml . | nindent 12 }}
             {{- end }}
@@ -55,6 +63,14 @@ spec:
             {{- if .Values.gpuMemoryUtilization }}
             - "--gpu-memory-utilization"
             - {{ .Values.gpuMemoryUtilization | quote }}
+            {{- end }}
+            {{- if not (or (empty .Values.maxNumSeqs) (eq (toString .Values.maxNumSeqs) "null")) }}
+            - "--max-num-seqs"
+            - {{ .Values.maxNumSeqs | quote }}
+            {{- end }}
+            {{- if not (or (empty .Values.tensorParallelSize) (eq (toString .Values.tensorParallelSize) "null")) }}
+            - "--tensor-parallel-size"
+            - {{ .Values.tensorParallelSize | quote }}
             {{- end }}
             {{- with .Values.extraArgs }}
             {{- toYaml . | nindent 12 }}

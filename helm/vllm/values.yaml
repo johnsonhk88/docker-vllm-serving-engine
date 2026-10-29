@@ -26,7 +26,11 @@ service:
 gpuMemoryUtilization: 0.8
 maxModelLen: 4096
 
-# Extra arguments passed to vLLM (e.g. ["--tensor-parallel-size", "2"])
+# Deploy-time serving knobs (omit the vLLM flag when null; not autoscaled)
+maxNumSeqs: null
+tensorParallelSize: null
+
+# Extra arguments passed to vLLM (e.g. ["--disable-log-stats"])
 extraArgs: []
 
 # Hugging Face token (leave empty if not needed or using existingSecret)
