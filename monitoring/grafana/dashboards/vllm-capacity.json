@@ -1,0 +1,97 @@
+{
+  "uid": "vllm-capacity",
+  "title": "vLLM Capacity",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "10s",
+  "time": { "from": "now-1h", "to": "now" },
+  "timezone": "browser",
+  "tags": ["vllm", "gpu"],
+  "templating": { "list": [] },
+  "annotations": { "list": [] },
+  "panels": [
+    {
+      "id": 1,
+      "type": "timeseries",
+      "title": "Requests running / waiting",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
+      "targets": [
+        { "expr": "sum(vllm:num_requests_running)", "legendFormat": "running", "refId": "A" },
+        { "expr": "sum(vllm:num_requests_waiting)", "legendFormat": "waiting", "refId": "B" }
+      ]
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "Token throughput",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "ops" }, "overrides": [] },
+      "targets": [
+        { "expr": "sum(vllm:avg_prompt_throughput_toks_per_s)", "legendFormat": "prompt toks/s", "refId": "A" },
+        { "expr": "sum(vllm:avg_generation_throughput_toks_per_s)", "legendFormat": "generation toks/s", "refId": "B" }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "timeseries",
+      "title": "GPU KV-cache usage",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "percentunit", "max": 1 }, "overrides": [] },
+      "targets": [
+        { "expr": "avg(vllm:gpu_cache_usage_perc)", "legendFormat": "KV cache", "refId": "A" }
+      ]
+    },
+    {
+      "id": 4,
+      "type": "timeseries",
+      "title": "DCGM GPU utilization",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "percent" }, "overrides": [] },
+      "targets": [
+        { "expr": "DCGM_FI_DEV_GPU_UTIL", "legendFormat": "{{ gpu }} util", "refId": "A" }
+      ]
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "DCGM GPU framebuffer used",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "decbytes" }, "overrides": [] },
+      "targets": [
+        { "expr": "DCGM_FI_DEV_FB_USED", "legendFormat": "{{ gpu }} fb used", "refId": "A" }
+      ]
+    },
+    {
+      "id": 6,
+      "type": "timeseries",
+      "title": "Node CPU",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 16 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "percentunit", "max": 1 }, "overrides": [] },
+      "targets": [
+        {
+          "expr": "1 - avg(rate(node_cpu_seconds_total{mode=\"idle\"}[5m]))",
+          "legendFormat": "CPU busy",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "type": "timeseries",
+      "title": "Node memory available",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 24 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "bytes" }, "overrides": [] },
+      "targets": [
+        { "expr": "node_memory_MemAvailable_bytes", "legendFormat": "available", "refId": "A" }
+      ]
+    }
+  ]
+}
