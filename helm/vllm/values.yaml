@@ -57,6 +57,15 @@ cache:
   enabled: true
   hostPath: "/home/johnsonhk88/.cache/huggingface"
 
+# Prometheus Operator ServiceMonitor (requires cluster CRD; default off)
+monitoring:
+  enabled: false
+  serviceMonitor:
+    interval: 15s
+    scrapeTimeout: 10s
+    path: /metrics
+    labels: {}
+
 # Health Probes
 probes:
   readiness:
