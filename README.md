@@ -432,10 +432,15 @@ You will see:
 
 - **Token throughput** — prompt and generation tokens/s
 - **Queue** — requests running vs waiting
+- **Latency** — TTFT p95, inter-token latency p95, end-to-end p95
 - **GPU** — KV-cache %, DCGM utilization, framebuffer (VRAM)
 - **CPU / RAM** — node-exporter host CPU and available memory
 
-How to read those panels and which Helm knobs to change: [`monitoring/README.md`](monitoring/README.md).
+Prometheus also loads `monitoring/prometheus/alerts.yml` (target down, queue
+backlog, TTFT/ITL, KV-cache saturation). Check http://localhost:9090/alerts or
+validate the rules with the promtool command in the monitoring guide.
+
+How to read those panels, query Prometheus, and troubleshoot: [`monitoring/README.md`](monitoring/README.md).
 
 ### Kubernetes
 

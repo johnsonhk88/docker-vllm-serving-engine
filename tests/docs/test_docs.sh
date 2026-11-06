@@ -24,8 +24,16 @@ grep -q 'tensorParallelSize' k8s/README.md \
   || fail "tensorParallelSize missing from k8s/README.md"
 grep -q 'maxNumSeqs' k8s/README.md \
   || fail "maxNumSeqs missing from k8s/README.md"
-grep -q 'avg_generation_throughput_toks_per_s' monitoring/README.md \
-  || fail "token throughput metric missing from monitoring/README.md"
+grep -q 'generation_tokens_total' monitoring/README.md \
+  || fail "generation token metric missing from monitoring/README.md"
+grep -q 'kv_cache_usage_perc' monitoring/README.md \
+  || fail "KV-cache metric missing from monitoring/README.md"
+grep -q 'time_to_first_token_seconds_bucket' monitoring/README.md \
+  || fail "TTFT histogram missing from monitoring/README.md"
+grep -q 'alerts.yml' monitoring/README.md \
+  || fail "alert rule file missing from monitoring/README.md"
+grep -q 'Troubleshooting' monitoring/README.md \
+  || fail "troubleshooting section missing from monitoring/README.md"
 grep -q 'DCGM_FI_DEV_GPU_UTIL' monitoring/README.md \
   || fail "GPU util metric missing from monitoring/README.md"
 grep -q 'Token throughput' README.md \

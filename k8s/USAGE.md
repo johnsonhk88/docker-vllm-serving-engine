@@ -187,7 +187,7 @@ curl -s http://localhost:8000/v1/models | jq .
 ### GPU / CPU / Memory and token throughput
 Enable Prometheus scraping and (optionally) KEDA replica scaling, then import
 the **vLLM Capacity** dashboard for queue depth, prompt/generation toks/s,
-KV-cache %, GPU util/VRAM, and host CPU/RAM:
+TTFT/ITL/E2E latency, KV-cache %, GPU util/VRAM, and host CPU/RAM:
 
 ```bash
 helm upgrade --install vllm ./helm/vllm \

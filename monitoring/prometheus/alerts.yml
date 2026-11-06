@@ -1,0 +1,72 @@
+groups:
+  - name: vllm
+    rules:
+      - alert: VLLMMetricsDown
+        expr: max(up{job="vllm"}) == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "No vLLM /metrics target is reachable"
+          description: >-
+            Prometheus has failed to scrape every target in job "vllm" for 2
+            minutes. If you run only one mode, remove the unused port from
+            monitoring/prometheus/prometheus.yml.
+
+      - alert: VLLMQueueBacklog
+        expr: sum(vllm:num_requests_waiting) > 20
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "vLLM request queue is backing up"
+          description: >-
+            Queue depth is {{ $value | humanize }}. Lower maxNumSeqs on each
+            copy or add replicas.
+
+      - alert: VLLMHighTTFT
+        expr: histogram_quantile(0.95, sum by (le) (rate(vllm:time_to_first_token_seconds_bucket[5m]))) > 2
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "vLLM p95 TTFT is above 2s"
+          description: "p95 TTFT is {{ $value | humanize }}s."
+
+      - alert: VLLMHighInterTokenLatency
+        expr: histogram_quantile(0.95, sum by (le) (rate(vllm:inter_token_latency_seconds_bucket[5m]))) > 0.1
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "vLLM p95 inter-token latency is above 100ms"
+          description: "p95 inter-token latency is {{ $value | humanize }}s."
+
+      - alert: VLLMKVCacheSaturated
+        expr: avg(vllm:kv_cache_usage_perc) > 0.9 and sum(vllm:num_requests_waiting) > 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "vLLM KV cache is saturated while requests are waiting"
+          description: "KV-cache fill is {{ $value | humanizePercentage }}."
+
+      - alert: DCGMTargetDown
+        expr: up{job="dcgm"} == 0
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "DCGM exporter is not being scraped"
+          description: >-
+            GPU utilization and framebuffer panels will be empty. Check the
+            dcgm-exporter container and GPU access.
+
+      - alert: NodeExporterDown
+        expr: up{job="node"} == 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "node-exporter is not being scraped"
+          description: "Host CPU and memory panels will be empty."
