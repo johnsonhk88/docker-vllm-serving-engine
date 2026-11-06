@@ -42,4 +42,12 @@ grep -q 'serviceMonitor.labels' monitoring/README.md \
   || fail "monitoring/README.md must show serviceMonitor.labels in Helm examples"
 grep -q 'empty query' monitoring/README.md \
   || fail "monitoring/README.md must warn that an empty PromQL result will not scale"
-pass "operator documentation contains required monitoring contracts"
+grep -q -- '--enable-auto-tool-choice' README.md docs/opencode-tool-calling.md \
+  || fail "OpenCode auto tool choice flags missing from README.md or docs/opencode-tool-calling.md"
+grep -q -- '--tool-call-parser hermes' README.md docs/opencode-tool-calling.md \
+  || fail "Hermes tool parser example missing from README.md or docs/opencode-tool-calling.md"
+grep -q 'capabilities.tools' docs/opencode-tool-calling.md \
+  || fail "OpenCode tool capability example missing from docs/opencode-tool-calling.md"
+grep -q 'qwen3_coder' README.md docs/opencode-tool-calling.md \
+  || fail "Qwen3-Coder parser example missing from README.md or docs/opencode-tool-calling.md"
+pass "operator documentation contains required monitoring and OpenCode tool-calling contracts"

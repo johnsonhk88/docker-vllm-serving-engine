@@ -112,6 +112,28 @@ helm upgrade --install vllm ./helm/vllm \
 ```
 Then access directly via `http://<node-ip>:30080/v1/models`.
 
+### Tool Calling (OpenCode)
+
+OpenCode sends `tool_choice: "auto"` when tools are enabled. Start vLLM with both flags through the Helm chart's `extraArgs`:
+
+```yaml
+# values-tool-calling.yaml
+mode: text
+model: Qwen/Qwen3-0.6B
+servedModelName: qwen-small
+
+extraArgs:
+  - --enable-auto-tool-choice
+  - --tool-call-parser
+  - hermes
+```
+
+```bash
+helm upgrade --install vllm ./helm/vllm -f values-tool-calling.yaml
+```
+
+Use `qwen3_coder` instead of `hermes` for Qwen3-Coder models. See the full guide: [`docs/opencode-tool-calling.md`](../docs/opencode-tool-calling.md).
+
 ### Uninstall Helm Release
 ```bash
 helm uninstall vllm

@@ -138,6 +138,34 @@ print(response.choices[0].message.content)
 
 > **Note on Model Name:** Always pass the `--name` value (`qwen-small`), not the full Hugging Face ID (`Qwen/Qwen3-0.6B`), in the `"model"` field of API requests.
 
+### Tool Calling (OpenCode)
+
+OpenCode sends `tool_choice: "auto"` when tools are enabled. The vLLM pod must be started with both `--enable-auto-tool-choice` and a matching `--tool-call-parser`, otherwise requests fail with:
+
+```text
+"auto" tool choice requires --enable-auto-tool-choice and --tool-call-parser to be set
+```
+
+Pass the flags through the Helm chart's `extraArgs`:
+
+```yaml
+# values-tool-calling.yaml
+mode: text
+model: Qwen/Qwen3-0.6B
+servedModelName: qwen-small
+
+extraArgs:
+  - --enable-auto-tool-choice
+  - --tool-call-parser
+  - hermes
+```
+
+```bash
+helm upgrade --install vllm ./helm/vllm -f values-tool-calling.yaml
+```
+
+Use `qwen3_coder` instead of `hermes` for Qwen3-Coder models. For raw manifests, add the flags to the container `args`. See the full guide: [`docs/opencode-tool-calling.md`](../docs/opencode-tool-calling.md).
+
 ---
 
 ## 5. Omni & Image Generation Requests

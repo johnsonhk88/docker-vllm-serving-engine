@@ -19,6 +19,7 @@ Both scripts:
 - Re-execute under Bash automatically when called via `sh`.
 - Map container ports and mount the local Hugging Face model cache (`~/.cache/huggingface`).
 - Forward `HF_TOKEN` from the shell environment.
+- Support OpenAI-style tool calling for compatible text models when started with `--enable-auto-tool-choice` and a matching `--tool-call-parser`; see [Tool Calling for OpenCode](#tool-calling-for-opencode).
 
 ---
 
@@ -57,10 +58,14 @@ Use this script for standard text-based autoregressive models.
 ./src/run-vllm-docker.sh \
   --model Qwen/Qwen3-0.6B \
   --name qwen-small \
-  --gpu-memory-utilization 0.2
+  --gpu-memory-utilization 0.2 \
+  --enable-auto-tool-choice \
+  --tool-call-parser hermes
 ```
 
 *(You can also run via `bash src/run-vllm-docker.sh ...` or `sh src/run-vllm-docker.sh ...`)*
+
+The `--enable-auto-tool-choice` and `--tool-call-parser hermes` flags enable tool calling for OpenCode and other agents. Omit them only when the client does not enable tools; use `qwen3_coder` for Qwen3-Coder models. See [Tool Calling for OpenCode](#tool-calling-for-opencode) for details.
 
 #### Step 2: Verify Server Readiness
 
@@ -99,7 +104,49 @@ Usage:
 | `--port PORT` | `8000` | Host and container port mapping. |
 | `-h`, `--help` | None | Show usage help. |
 
-All remaining arguments (e.g. `--gpu-memory-utilization`, `--max-model-len`, `--tensor-parallel-size`) are passed directly to `vllm` inside the container.
+All remaining arguments (e.g. `--gpu-memory-utilization`, `--max-model-len`, `--tensor-parallel-size`) are passed directly to `vllm` inside the container. Tool-calling flags such as `--enable-auto-tool-choice` and `--tool-call-parser` are passed through the same way; see [Tool Calling for OpenCode](#tool-calling-for-opencode).
+
+### Tool Calling for OpenCode
+
+OpenCode sends `tool_choice: "auto"` whenever a model declares tool support. vLLM only accepts that request when the server is started with both `--enable-auto-tool-choice` and a matching `--tool-call-parser`. A server started without them returns:
+
+```text
+"auto" tool choice requires --enable-auto-tool-choice and --tool-call-parser to be set
+```
+
+Start Qwen3 instruct models with the Hermes parser:
+
+```bash
+./src/run-vllm-docker.sh \
+  --model Qwen/Qwen3-0.6B \
+  --name qwen-small \
+  --gpu-memory-utilization 0.2 \
+  --enable-auto-tool-choice \
+  --tool-call-parser hermes
+```
+
+Use the Coder parser for Qwen3-Coder models:
+
+```bash
+./src/run-vllm-docker.sh \
+  --model Qwen/Qwen3-Coder-30B-A3B-Instruct \
+  --name qwen3-coder \
+  --gpu-memory-utilization 0.9 \
+  --enable-auto-tool-choice \
+  --tool-call-parser qwen3_coder
+```
+
+| Model / tool-call format | `--tool-call-parser` |
+| --- | --- |
+| Qwen3 instruct, Qwen2.5 instruct, Hermes-style JSON | `hermes` |
+| Qwen3-Coder | `qwen3_coder` |
+| Qwen3 XML-style tool calls | `qwen3_xml` |
+| Llama 3.x | `llama3_json` |
+| Mistral | `mistral` |
+
+Both flags must be present. `--enable-auto-tool-choice` without `--tool-call-parser` prevents vLLM from starting.
+
+See the [OpenCode tool-calling guide](docs/opencode-tool-calling.md) for the OpenCode provider configuration, a verification request, Kubernetes flags, and troubleshooting.
 
 ---
 
@@ -485,6 +532,20 @@ If port `8000` or `8091` is in use, supply `--port <new_port>`:
 ./src/run-vllm-omni-docker.sh --model Qwen/Qwen-Image --port 8095
 ```
 Remember to direct client requests to `http://localhost:8095/v1/...`.
+
+### `"auto" tool choice requires --enable-auto-tool-choice and --tool-call-parser to be set`
+
+OpenCode sends `tool_choice: "auto"` when tools are enabled. Restart vLLM with both flags, using the parser that matches the model:
+
+```bash
+./src/run-vllm-docker.sh \
+  --model Qwen/Qwen3-0.6B \
+  --name qwen-small \
+  --enable-auto-tool-choice \
+  --tool-call-parser hermes
+```
+
+Use `qwen3_coder` for Qwen3-Coder models. See [Tool Calling for OpenCode](#tool-calling-for-opencode) for the parser table and OpenCode configuration.
 
 ### Kubernetes Troubleshooting & Debugging Guide
 For detailed failure analysis and solutions (including the `VLLM_PORT` URI collision, Helm without KUBECONFIG, container image caching, and node certificate IP mismatches), see [`k8s/DEBUG_GUIDE.md`](k8s/DEBUG_GUIDE.md).
